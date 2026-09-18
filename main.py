@@ -33,6 +33,6 @@ def run_pipeline(url: str):
     print("[INFO] Pipeline finished successfully.")
 
 if __name__ == "__main__":
-    test_url = "https://www.tui.pl/wypoczynek/gambia/holiday-beach-club-bjl30001/OfferCodeWS/POZBJL20261204101520261204202612111715L07BJL30001DZX5GA02ROGDZX5A02FCYY"
+    test_url = "https://www.wakacje.pl/oferty/chorwacja/dalmacja-polnocna/zadar/falkensteiner-club-funimation-borik-ex-funimation-club-borik-968127.html?od-2026-10-22,7-dni,all-inclusive,srcx,samochodem"
     
     run_pipeline(test_url)

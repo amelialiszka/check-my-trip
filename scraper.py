@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+from bs4 import BeautifulSoup
 
 class TravelOfferScraper:
     def __init__(self, headless=False):
@@ -17,14 +18,21 @@ class TravelOfferScraper:
                 try:
                     page.goto(url, wait_until="networkidle", timeout=15000)
                 except PlaywrightTimeoutError:
-                    print(f"[Warn] Network idle timeout on {url}. Retrying with domcontentloaded...")
                     page.goto(url, wait_until="domcontentloaded", timeout=15000)
 
-                # Trigger lazy loading for elements below the fold
                 page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2);")
                 page.wait_for_timeout(1500)
 
-                return page.locator("body").inner_text()
+                raw_html = page.content()
+                soup = BeautifulSoup(raw_html, "html.parser")
+
+                tags_to_remove = ["script", "style", "nav", "footer", "header", "noscript", "iframe"]
+                for element in soup(tags_to_remove):
+                    element.decompose()
+
+                cleaned_text = soup.get_text(separator="\n", strip=True)
+                
+                return cleaned_text
 
             except Exception as e:
                 return f"Error fetching {url}: {e}"
