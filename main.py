@@ -1,30 +1,38 @@
-import json
+import sys
 from scraper import TravelOfferScraper
 from analyzer import OfferAnalyzer
+from storage import OfferStorage
 
-def run_pipeline():
-    url = "https://www.wakacje.pl/oferty/cypr/cypr-poludniowy/protaras/anastasia-beach-protaras-916278.html?od-2026-10-03,7-dni,all-inclusive,z-katowic,srcx"
+def run_pipeline(url: str):
+    print(f"[INFO] Starting pipeline for URL: {url}")
     
-    print(f"[Info] Fetching raw text from: {url}")
-    scraper = TravelOfferScraper(headless=False)
-    raw_text = scraper.get_offer_text(url)
+    # 1. Scrape
+    scraper = TravelOfferScraper()
+    print("[INFO] Scraping website...")
+    html_content = scraper.get_offer_text(url)
     
-    if raw_text.startswith("Error"):
-        print(f"[Error] Scraper failed: {raw_text}")
-        return
+    if not html_content or html_content.startswith("Error fetching"):
+        print(f"[ERROR] Failed to retrieve page content. {html_content}.")
+        sys.exit(1)
         
-    print(f"[Info] Successfully fetched {len(raw_text)} characters.")
-    print("[Info] Extracting structured data using LLM...")
-    
+    print(f"[INFO] Fetched {len(html_content)} characters.")
+
+    # 2. Extract
     analyzer = OfferAnalyzer()
-    
+    print("[INFO] Extracting data via Gemini API...")
     try:
-        structured_data = analyzer.extract_information(raw_text)
-        print("\n--- EXTRACTED DATA ---")
-        print(json.dumps(structured_data, indent=4, ensure_ascii=False))
-        print("----------------------")
+        extracted_data = analyzer.extract_information(html_content)
     except Exception as e:
-        print(f"[Error] Data extraction failed: {e}")
+        print(f"[ERROR] Extraction failed: {e}")
+        sys.exit(1)
+
+    # 3. Save
+    storage = OfferStorage()
+    storage.save_offer(url, extracted_data)
+    
+    print("[INFO] Pipeline finished successfully.")
 
 if __name__ == "__main__":
-    run_pipeline()
+    test_url = "https://www.tui.pl/wypoczynek/gambia/holiday-beach-club-bjl30001/OfferCodeWS/POZBJL20261204101520261204202612111715L07BJL30001DZX5GA02ROGDZX5A02FCYY"
+    
+    run_pipeline(test_url)
