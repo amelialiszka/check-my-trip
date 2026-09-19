@@ -27,12 +27,14 @@ def run_pipeline(url: str):
         sys.exit(1)
 
     # 3. Save
+    print(f"[DEBUG] Extracted data: {extracted_data}")
+    
     storage = OfferStorage()
     storage.save_offer(url, extracted_data)
     
     print("[INFO] Pipeline finished successfully.")
 
 if __name__ == "__main__":
-    test_url = "https://www.wakacje.pl/oferty/chorwacja/dalmacja-polnocna/zadar/falkensteiner-club-funimation-borik-ex-funimation-club-borik-968127.html?od-2026-10-22,7-dni,all-inclusive,srcx,samochodem"
+    test_url = "https://www.itaka.pl/wczasy/wyspy-kanaryjskie/fuerteventura/hotel-r2-rio-calma,FUERIOC/?id%5B0%5D=CgVJdGFrYRIEVklUWBoDUExOIgdGVUVSSU9DKAQ6BFo2MDBCBgiAt5DaBkoGCICstdoGUAJiBQoDV1JPagUKA0ZVRXIDCgExegUKA0ZVRYIBBQoDV1JPigEDCgExkgEGCIC3kNoGmgEGCICstdoGogEFCgNEQkyqAQMKAUjiAQkKB1Jlc2FiZWXqAQkKB1Jlc2FiZWXyAQkKB1Jlc2FiZWU%3D&adults%5B0%5D=2"
     
     run_pipeline(test_url)

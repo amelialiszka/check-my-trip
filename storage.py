@@ -1,18 +1,29 @@
-import sqlite3
+import os
 import datetime
+import libsql_client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class OfferStorage:
-    def __init__(self, db_name: str = "travel_offers.db"):
-        self.db_name = db_name
+    def __init__(self):
+        self.url = os.getenv("TURSO_DATABASE_URL")
+        self.token = os.getenv("TURSO_AUTH_TOKEN")
+        
+        if not self.url or not self.token:
+            raise ValueError("[ERROR] Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN in .env file!")
+            
         self.init_db()
 
-    def get_connection(self):
-        return sqlite3.connect(self.db_name)
+    def get_client(self):
+        return libsql_client.create_client_sync(
+            url=self.url,
+            auth_token=self.token
+        )
 
     def init_db(self):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+        with self.get_client() as client:
+            client.execute("""
                 CREATE TABLE IF NOT EXISTS offers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     url TEXT NOT NULL,
@@ -49,14 +60,13 @@ class OfferStorage:
                     is_public_transport_nearby BOOLEAN
                 )
             """)
-            conn.commit()
+            print("[INFO] Connected to Turso cloud. Table 'offers' is ready.")
 
     def save_offer(self, url: str, offer_data: dict):
         scraped_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+        with self.get_client() as client:
+            client.execute("""
                 INSERT INTO offers (
                     url, scraped_at, hotel_name, price_per_person, duration_days, country, region, departure_date,
                     hotel_stars, average_rating, review_count, room_type, has_sea_view, meal_plan,
@@ -66,7 +76,7 @@ class OfferStorage:
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )
-            """, (
+            """, [
                 url, scraped_at, 
                 offer_data['hotel_name'], offer_data['price_per_person'], offer_data['duration_days'], 
                 offer_data['country'], offer_data['region'], offer_data['departure_date'],
@@ -77,6 +87,5 @@ class OfferStorage:
                 offer_data['is_wifi_free'], offer_data['is_sunbed_included'],
                 offer_data['distance_to_beach_meters'], offer_data['distance_to_center_meters'], 
                 offer_data['is_direct_flight'], offer_data['is_transfer_included'], offer_data['is_public_transport_nearby']
-            ))
-            conn.commit()
-            print(f"[INFO] Successfully saved offer for {offer_data['hotel_name']} to {self.db_name}")
+            ])
+            print(f"[INFO] Successfully saved offer for {offer_data['hotel_name']} to Turso cloud.")
