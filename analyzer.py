@@ -10,50 +10,51 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class OfferDetails(BaseModel):
-    # --- BRUDNOPIS DLA MODELU (Chain of Thought) ---
     reasoning_and_search: str = Field(
         ..., 
-        description="Before filling out the JSON, write a step-by-step analysis. Explicitly search the text for hotel name, price, stars, rating, beach distance, and amenities. Point out where you found them or state explicitly that you searched the whole text and it's missing."
+        description="Before filling out the JSON, write a step-by-step analysis. Explicitly search the text for hotel name, price per person, stars, rating, beach distance, amenities, sunbeds (verify carefully if they are free or require extra payment), departure date, and flight times. Point out where you found them or state explicitly that you searched the whole text and it's missing."
     )
-
-    # --- BASIC INFO (Required - brak tych danych wyrzuci błąd walidacji) ---
     hotel_name: str = Field(..., description="Name of the hotel.")
-    total_price: float = Field(..., description="Total price of the trip in local currency.")
+    price_per_person: float = Field(..., description="Price per person in local currency.")
     duration_days: int = Field(..., description="Duration of the trip in days.")
     country: str = Field(..., description="Destination country.")
     region: str = Field(..., description="Destination region or city.")
-    
-    # --- HOTEL & STANDARD (Optional) ---
+    departure_date: Optional[str] = Field(default=None, description="Departure date in YYYY-MM-DD format.")
     hotel_stars: Optional[float] = Field(default=None, description="Hotel category in stars. Search thoroughly. Output null ONLY if absolutely missing.")
     average_rating: Optional[float] = Field(default=None, description="Average customer review score. Search carefully. Output null ONLY if absolutely missing.")
     review_count: Optional[int] = Field(default=None, description="Total number of customer reviews. Output null ONLY if absolutely missing.")
-    
-    # --- ROOM & TRANSPORT (Optional) ---
-    room_type: Optional[str] = Field(default=None, description="Type of room, e.g., 'Standard', 'Apartment'.")
+    room_type: Optional[str] = Field(
+        default=None, 
+        description=(
+            "Categorize the room type into strictly ONE of these English categories: "
+            "'Standard', 'Family', 'Apartment', 'Suite', 'Studio', 'Economy'. "
+            "Map regular rooms (e.g., 'Pokój 2 os.', 'Pokój dwuosobowy', 'Standardowy') to 'Standard'. "
+            "Map 'Rodzinny' to 'Family'. Map 'Promocyjny' to 'Economy'."
+        )
+    )
     has_sea_view: Optional[bool] = Field(default=None, description="Does the room have a sea view? True/False.")
-    meal_plan: Optional[str] = Field(default=None, description="Type of meal plan, e.g., 'All Inclusive', 'HB', 'BB', 'RO'.")
-    
-    # --- AMENITIES (Optional) ---
+    meal_plan: Optional[str] = Field(
+        default=None, 
+        description="Type of meal plan. ALWAYS use standard abbreviations: 'BB', 'HB', 'FB', 'AI', 'RO'."
+    )
+    flight_departure_time: Optional[str] = Field(default=None, description="Time of the departure flight (e.g. '06:30'). Output null if missing.")
+    flight_return_time: Optional[str] = Field(default=None, description="Time of the return flight (e.g. '23:15'). Output null if missing.")
     number_of_restaurants: Optional[int] = Field(default=None, description="Total number of restaurants.")
     number_of_bars: Optional[int] = Field(default=None, description="Total number of bars.")
     number_of_pools: Optional[int] = Field(default=None, description="Number of swimming pools. Search for 'basen' or 'pools'.")
     is_wifi_free: Optional[bool] = Field(default=None, description="Is Wi-Fi free? True/False.")
-    
-    # --- LOCATION (Optional) ---
+    is_sunbed_included: Optional[bool] = Field(
+        default=None, 
+        description="Are sunbeds included for free? Output True ONLY if explicitly 'bezpłatne' or 'w cenie'. Output False if 'płatne', 'za opłatą', or cost money. Output null if not mentioned."
+    )
     distance_to_beach_meters: Optional[int] = Field(
         default=None, 
-        description=(
-            "Distance to the beach in meters. "
-            "Search thoroughly for keywords like 'plaża', 'morze', 'beach'. "
-            "1. Extract exact numbers. "
-            "2. 'Bezpośrednio przy plaży' or 'Beachfront' -> 0. "
-            "Output null ONLY if completely absent."
-        )
+        description="Distance to the beach in meters. Search thoroughly for keywords like 'plaża', 'morze', 'beach'. 1. Extract exact numbers. 2. 'Bezpośrednio przy plaży' or 'Beachfront' -> 0. Output null ONLY if completely absent."
     )
     distance_to_center_meters: Optional[int] = Field(default=None, description="Distance to city center in meters. Search thoroughly.")
     is_direct_flight: Optional[bool] = Field(default=None, description="Is the flight direct? True/False.")
     is_transfer_included: Optional[bool] = Field(default=None, description="Is the transfer included? True/False.")
-
+    is_public_transport_nearby: Optional[bool] = Field(default=None, description="Is there public transport (bus, train) nearby? True/False.")
 
 class OfferAnalyzer:
     def __init__(self):
@@ -91,7 +92,6 @@ class OfferAnalyzer:
                 extracted_dict = json.loads(response.text)
                 validated_data = OfferDetails(**extracted_dict)
                 
-                # Zrzucamy dane do słownika i usuwamy brudnopis, żeby nie trafił do bazy SQLite
                 final_data = validated_data.model_dump()
                 final_data.pop("reasoning_and_search", None)
                 
@@ -101,7 +101,6 @@ class OfferAnalyzer:
                 error_str = str(e)
                 if any(err in error_str for err in ["503", "UNAVAILABLE", "429"]):
                     if attempt < max_retries:
-                        # Exponential backoff: 10s, 20s, 40s, 80s
                         sleep_time = 10 * (2 ** (attempt - 1))
                         print(f"[WARNING] API congested. Retrying in {sleep_time}s...")
                         time.sleep(sleep_time)
