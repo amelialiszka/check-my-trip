@@ -60,7 +60,7 @@ class OfferAnalyzer:
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("ERROR: GEMINI_API_KEY not found in environment variables!")
+            raise ValueError("[ERROR] GEMINI_API_KEY not found in environment variables!")
         
         self.client = genai.Client(api_key=api_key)
 
@@ -106,4 +106,4 @@ class OfferAnalyzer:
                         time.sleep(sleep_time)
                         continue
                 
-                raise e
+                raise RuntimeError(f"[ERROR] Extraction failed after {attempt} attempts: {e}")
