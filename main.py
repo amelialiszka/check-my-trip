@@ -8,13 +8,13 @@ def run_pipeline():
     print("[INFO] Initializing pipeline...")
     
     storage = OfferStorage()
-    active_sources = storage.get_pending_sources(limit=20)
+    active_sources = storage.get_pending_sources(limit=500)
     
     if not active_sources:
-        print("[WARNING] No pending sources found in the database. Add some seed URLs first!")
+        print("[WARNING] No sources to process found in the database. Add some seed URLs first!")
         return
 
-    print(f"[INFO] Found {len(active_sources)} pending source(s) in this batch.")
+    print(f"[INFO] Found {len(active_sources)} source(s) to process in this batch.")
 
     scraper = TravelOfferScraper()
     analyzer = OfferAnalyzer()
@@ -49,16 +49,20 @@ def run_pipeline():
             storage.update_source_status(url, 'FAILED')
             continue
 
-        if extracted_data and extracted_data.get('hotel_name'):
-            storage.save_offer(url, extracted_data)
-            storage.update_source_status(url, 'PROCESSED')
+        if extracted_data and extracted_data.get('hotel_name') and extracted_data.get('price_per_person') is not None:
+            if extracted_data['price_per_person'] > 0:
+                storage.save_offer(url, extracted_data)
+                storage.update_source_status(url, 'PROCESSED')
+            else:
+                print(f"[WARNING] Extracted price is 0 for {url}. Marking as FAILED to protect data quality.")
+                storage.update_source_status(url, 'FAILED')
         else:
-            print(f"[WARNING] Extracted data was empty or invalid for {url}. Marking as FAILED.")
+            print(f"[WARNING] Missing essential data (hotel name or price) for {url}. Marking as FAILED.")
             storage.update_source_status(url, 'FAILED')
 
         if index < len(active_sources) - 1:
-            print("[INFO] Waiting 2.5 seconds before the next request to respect rate limits...")
-            time.sleep(2.5)
+            print("[INFO] Waiting 4.5 seconds before the next request to respect Gemini rate limits...")
+            time.sleep(4.5)
 
     print("\n[INFO] Batch finished successfully.")
 

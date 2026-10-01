@@ -56,15 +56,20 @@ class OfferDetails(BaseModel):
     is_transfer_included: Optional[bool] = Field(default=None, description="Is the transfer included? True/False.")
     is_public_transport_nearby: Optional[bool] = Field(default=None, description="Is there public transport (bus, train) nearby? True/False.")
 
+
 class OfferAnalyzer:
     def __init__(self):
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("[ERROR] GEMINI_API_KEY not found in environment variables!")
+        api_key_env = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEYS")
+        if not api_key_env:
+            raise ValueError("[ERROR] API key not found in .env variables!")
         
-        self.client = genai.Client(api_key=api_key)
+        self.api_key = api_key_env.split(",")[0].strip()
+        
+        print("[INFO] Loaded API key. Initializing Gemini Client.")
+        self.client = genai.Client(api_key=self.api_key)
 
-    def extract_information(self, text: str, max_retries: int = 5) -> dict:
+
+    def extract_information(self, text: str, max_retries: int = 2) -> dict:
         schema_json = json.dumps(OfferDetails.model_json_schema(), indent=2)
         
         prompt = f"""
@@ -75,11 +80,12 @@ class OfferAnalyzer:
         Respond ONLY with a valid JSON object.
         """
 
-        target_model = 'gemini-3.6-flash'
+        target_model = 'gemini-3.5-flash-lite'
 
         for attempt in range(1, max_retries + 1):
             try:
                 print(f"[INFO] Requesting extraction using {target_model} (Attempt {attempt}/{max_retries})...")
+                
                 response = self.client.models.generate_content(
                     model=target_model,
                     contents=[prompt, text],
@@ -98,12 +104,18 @@ class OfferAnalyzer:
                 return final_data
 
             except Exception as e:
-                error_str = str(e)
-                if any(err in error_str for err in ["503", "UNAVAILABLE", "429"]):
+                error_str = str(e).upper()
+                
+                if "429" in error_str or "QUOTA" in error_str or "EXHAUSTED" in error_str:
                     if attempt < max_retries:
-                        sleep_time = 10 * (2 ** (attempt - 1))
-                        print(f"[WARNING] API congested. Retrying in {sleep_time}s...")
-                        time.sleep(sleep_time)
+                        print("[WARNING] API limit hit. Waiting 60 seconds before retry...")
+                        time.sleep(60)
+                        continue
+                        
+                elif "503" in error_str or "UNAVAILABLE" in error_str:
+                    if attempt < max_retries:
+                        print("[WARNING] Google servers overloaded (503). Waiting 30s before retry...")
+                        time.sleep(30)
                         continue
                 
                 raise RuntimeError(f"[ERROR] Extraction failed after {attempt} attempts: {e}")
