@@ -74,7 +74,7 @@ class OfferStorage:
     def get_pending_sources(self, limit: int = 20):
         with self.get_client() as client:
             result = client.execute(
-                "SELECT url, provider FROM sources WHERE status = 'PENDING' LIMIT ?", 
+                "SELECT url, provider FROM sources WHERE status IN ('PENDING', 'FAILED') LIMIT ?", 
                 [limit]
             )
             return [{"url": row[0], "provider": row[1]} for row in result.rows]
