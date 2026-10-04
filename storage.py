@@ -2,6 +2,7 @@ import os
 import datetime
 import libsql_client
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -87,10 +88,18 @@ class OfferStorage:
             )
             print(f"[INFO] Added source URL for {provider}: {url}")
 
-    def update_source_status(self, url: str, status: str):
-        with self.get_client() as client:
-            client.execute("UPDATE sources SET status = ? WHERE url = ?", [status, url])
-            print(f"[INFO] Source status updated to {status} for {url}")
+    def update_source_status(self, url: str, status: str, max_retries: int = 3):
+        for attempt in range(1, max_retries + 1):
+            try:
+                with self.get_client() as client:
+                    client.execute("UPDATE sources SET status = ? WHERE url = ?", [status, url])
+                    print(f"[INFO] Source status updated to {status} for {url}")
+                    return
+            except Exception as e:
+                if attempt == max_retries:
+                    print(f"[WARNING] Failed to update status for {url} after {max_retries} attempts due to network issue: {e}")
+                else:
+                    time.sleep(2)
 
     def save_offer(self, url: str, offer_data: dict):
         today_date = datetime.datetime.now().strftime("%Y-%m-%d")
