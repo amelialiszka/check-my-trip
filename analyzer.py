@@ -17,7 +17,9 @@ class OfferDetails(BaseModel):
     hotel_name: str = Field(..., description="Name of the hotel.")
     price_per_person: float = Field(..., description="Price per person in local currency.")
     duration_days: int = Field(..., description="Duration of the trip in days.")
-    country: str = Field(..., description="Destination country.")
+    country: str = Field(..., description="Destination country. ALWAYS normalize and output the country name in English "
+        "(e.g., always use 'Greece' instead of 'Grecja', 'Bulgaria' instead of 'Bułgaria', "
+        "'Spain' instead of 'Hiszpania', etc.).")
     region: str = Field(..., description="Destination region or city.")
     departure_date: Optional[str] = Field(default=None, description="Departure date in YYYY-MM-DD format.")
     hotel_stars: Optional[float] = Field(default=None, description="Hotel category in stars. Search thoroughly. Output null ONLY if absolutely missing.")
@@ -119,3 +121,6 @@ class OfferAnalyzer:
                         continue
                 
                 raise RuntimeError(f"[ERROR] Extraction failed after {attempt} attempts: {e}")
+
+
+                
