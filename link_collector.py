@@ -315,8 +315,7 @@ class TravelScraper:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=False)
             page = browser.new_page()
-            
-            # Pierwsze wejście w celu zaakceptowania cookie bannerów
+
             page.goto(base_search_url, timeout=60000, wait_until="domcontentloaded")
             try:
                 page.locator("button:has-text('Akceptuj'), button:has-text('Zgadzam się'), button:has-text('Przejdź')").first.click(timeout=5000)
@@ -354,7 +353,6 @@ class TravelScraper:
                     if clean_url not in seen_urls:
                         seen_urls.add(clean_url)
                         try:
-                            # Zapisujemy w bazie pod poddostawcą "Rainbow Luxury" dla czytelności w DB
                             self.storage.add_source(clean_url, provider="Rainbow Luxury")
                             collected_count += 1
                             added_on_page += 1

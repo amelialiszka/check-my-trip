@@ -88,8 +88,6 @@ class TravelDataPreprocessorV2(BaseEstimator, TransformerMixin):
         if 'region' in X_out.columns:
             X_out['region'] = X_out['region'].replace(self.rare_regions, 'Other')
 
-        # --- ŻELAZNE ZABEZPIECZENIE TYPÓW DLA XGBOOSTA ---
-        # Upewniamy się, że kolumny numeryczne są liczbami, a nie stringami
         num_cols = [
             'duration_days', 'days_to_departure', 'is_last_minute', 'departure_month',
             'hotel_stars', 'credibility_score', 'distance_to_beach_meters', 'distance_to_center_meters',
