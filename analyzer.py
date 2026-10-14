@@ -15,7 +15,13 @@ class OfferDetails(BaseModel):
         description="Before filling out the JSON, write a step-by-step analysis. Explicitly search the text for hotel name, price per person, stars, rating, beach distance, amenities, sunbeds (verify carefully if they are free or require extra payment), departure date, and flight times. Point out where you found them or state explicitly that you searched the whole text and it's missing."
     )
     hotel_name: str = Field(..., description="Name of the hotel.")
-    price_per_person: float = Field(..., description="Price per person in local currency.")
+    price_per_person: float = Field(..., description=(
+            "Price per ONE person in local currency. "
+            "CRITICAL: If the website displays the total price for the entire booking or for 2 people "
+            "(e.g., '12000 zł za 2 osoby'), you MUST divide that total price by the number of adults/people "
+            "to calculate and return the price strictly for a single person!"
+        )
+        )
     duration_days: int = Field(..., description="Duration of the trip in days.")
     country: str = Field(..., description="Destination country. ALWAYS normalize and output the country name in English "
         "(e.g., always use 'Greece' instead of 'Grecja', 'Bulgaria' instead of 'Bułgaria', "
