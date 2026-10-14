@@ -151,7 +151,3 @@ To replicate the cloud environment:
 
 * System-level dependencies for headless Chromium (required by Playwright) are handled via `packages.txt`.
 * Environment variables (`GEMINI_API_KEY`, `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) are securely injected through the **Streamlit Cloud Secrets** manager, meaning end-users don't need to configure any local API keys to test the live app.
-
-## 📝 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
