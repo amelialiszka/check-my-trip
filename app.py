@@ -8,6 +8,11 @@ from scraper import TravelOfferScraper
 from analyzer import OfferAnalyzer
 from storage import OfferStorage
 from preprocessor import TravelDataPreprocessorV2
+import sys
+import subprocess
+
+subprocess.run([sys.executable, "-m", 'playwright', 'install', 'chromium'])
+
 
 st.set_page_config(
     page_title="Check My Trip",
